@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Moonphase Cycle Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow column, a 28-day-style cycle dial as the hero, four tabs */
+:root{--bg:#f4f1f7;--card:#fff;--ink:#2a1b36;--mut:#6d5f7a;--line:#ddd5e5;--acc:#5b2a6e;--on:#fff;
+--period:#c2315c;--period-soft:#f8d9e2;--fertile:#12806f;--fertile-soft:#d3eee9;--ov:#c77a0a;
+--disp:"Bricolage Grotesque",system-ui,sans-serif;--body:"Figtree",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#17101e;--card:#221829;--ink:#f0e9f6;--mut:#ac9dba;--line:#3b2d47;--acc:#c99ade;--on:#1d1026;--period:#f06a90;--period-soft:#4a1f30;--fertile:#4cc4ae;--fertile-soft:#14403a;--ov:#f0ad45;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#17101e;--card:#221829;--ink:#f0e9f6;--mut:#ac9dba;--line:#3b2d47;--acc:#c99ade;--on:#1d1026;--period:#f06a90;--period-soft:#4a1f30;--fertile:#4cc4ae;--fertile-soft:#14403a;--ov:#f0ad45;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--body)}
+.wrap{max-width:480px;margin:auto;padding-block:16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+h1,h2,h3{font-family:var(--disp);margin:0;line-height:1.2;text-wrap:balance}
+h1{font-size:1.35rem}h2{font-size:1.15rem}h3{font-size:1rem}
+p{margin:0}.mut{color:var(--mut);font-size:.875rem}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 14px;font-weight:500}
+button.pri{background:var(--acc);border-color:var(--acc);color:var(--on);font-weight:600}
+button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:var(--on)}
+button:disabled{opacity:.4;cursor:default}
+:focus-visible{outline:3px solid var(--ov);outline-offset:2px}
+input,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px}
+label{display:grid;gap:4px;font-weight:500;font-size:.9rem}
+nav{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px}
+nav button{border:0;padding:8px 2px;font-size:.9rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.banner{border:1px dashed var(--ov);border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:.875rem}
+.dial{width:100%;max-width:320px;margin:auto;display:block}
+.dial text{fill:var(--ink);font-family:var(--body);text-anchor:middle}
+.dial .n{font:700 52px var(--disp)}.dial .s{font-size:13px;fill:var(--mut)}.dial .ph{font-size:14px;font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;font-size:.8rem;color:var(--mut)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+.rows{display:grid}.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line)}.row:first-child{border:0}
+.row b{text-align:right;font-variant-numeric:tabular-nums}
+.head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
+.grid .dow{font-size:.75rem;color:var(--mut)}
+.day{aspect-ratio:1;padding:0;border:2px solid transparent;background:transparent;position:relative;font-variant-numeric:tabular-nums}
+.day.p{background:var(--period);color:var(--on)}
+.day.pp{background:var(--period-soft);border:2px dashed var(--period)}
+.day.f{background:var(--fertile-soft)}
+.day.o{background:var(--fertile-soft);border-color:var(--ov)}
+.day.today{text-decoration:underline;text-underline-offset:4px;font-weight:700}
+.day.sel{outline:3px solid var(--acc);outline-offset:1px}
+.day.dot::after{content:"";position:absolute;bottom:3px;left:calc(50% - 2px);width:4px;height:4px;border-radius:50%;background:currentColor}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chips button{border-radius:99px;padding:6px 12px;font-size:.875rem}
+.bar{display:grid;grid-template-columns:64px minmax(0,1fr) 56px;gap:8px;align-items:center;font-size:.85rem;font-variant-numeric:tabular-nums}
+.track{height:12px}.track span{display:block;height:100%;border-radius:4px;background:var(--acc)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+#msg{min-height:1.4em;text-align:center}
+ul{margin:0;padding-left:18px}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header><h1>Moonphase</h1><p class="mut">Period and cycle tracker. Your entries stay in this browser.</p></header>
+  <nav aria-label="Sections">
+    <button data-tab="today">Today</button><button data-tab="calendar">Calendar</button><button data-tab="history">History</button><button data-tab="data">Settings</button>
+  </nav>
+  <p id="msg" class="mut" role="status"></p>
+  <main id="view" style="display:grid;gap:14px;grid-template-columns:minmax(0,1fr)"></main>
+  <p class="mut">Predictions are estimates from past dates. Do not use them to prevent pregnancy or to diagnose any condition.</p>
+</div>
+
+<script>
+const KEY='moonphase-v1', DAY=864e5;
+const SYM=['Cramps','Headache','Bloating','Tender breasts','Acne','Fatigue','Back ache','Nausea','Cravings','Poor sleep'];
+const MOOD=['Calm','Happy','Energetic','Anxious','Irritable','Low'];
+const FLOW=['None','Spotting','Light','Medium','Heavy'];
+/* dates are handled as whole day numbers so daylight saving never shifts them */
+const num=s=>Math.round(Date.parse(s+'T00:00:00Z')/DAY);
+const iso=n=>new Date(n*DAY).toISOString().slice(0,10);
+const todayN=()=>{const d=new Date();return Math.round(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/DAY)};
+const fmt=(n,o={day:'numeric',month:'short'})=>new Date(n*DAY).toLocaleDateString(undefined,{...o,timeZone:'UTC'});
+const avg=a=>Math.round(a.reduce((x,y)=>x+y,0)/a.length);
+const blank=()=>({v:1,set:{cycle:28,period:5},days:{}});
+
+/* accept only well-formed data, from storage or from a restored backup */
+function clean(raw){
+  if(!raw||raw.v!==1||typeof raw.days!=='object'||!raw.days)return null;
+  const out=blank(), int=(x,lo,hi,d)=>Number.isInteger(x)&&x>=lo&&x<=hi?x:d;
+  out.set.cycle=int(raw.set?.cycle,15,60,28);out.set.period=int(raw.set?.period,1,14,5);
+  for(const [k,v] of Object.entries(raw.days)){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(k)||isNaN(num(k))||iso(num(k))!==k||!v)continue;
+    const e={flow:int(v.flow,0,4,0),sym:Array.isArray(v.sym)?SYM.filter(s=>v.sym.includes(s)):[],mood:MOOD.includes(v.mood)?v.mood:'',note:typeof v.note==='string'?v.note.slice(0,500):''};
+    if(e.flow||e.sym.length||e.mood||e.note)out.days[k]=e;
+  }
+  return out;
+}
+
+/* periods: bleeding days (not spotting) with at most one blank day between them */
+function analyse(data,t){
+  const bleed=Object.keys(data.days).filter(k=>data.days[k].flow>=2).map(num).filter(n=>n<=t).sort((a,b)=>a-b);
+  const periods=[];
+  for(const n of bleed){const l=periods[periods.length-1];if(l&&n-l.end<=2)l.end=n;else periods.push({start:n,end:n})}
+  const cycles=[];
+  for(let i=1;i<periods.length;i++)cycles.push({start:periods[i-1].start,len:periods[i].start-periods[i-1].start});
+  const used=cycles.map(c=>c.len).filter(l=>l>=15&&l<=60).slice(-6);
+  const cycle=used.length?avg(used):data.set.cycle;
+  const done=periods.filter(p=>p.end<t-1).map(p=>p.end-p.start+1).slice(-6);
+  const plen=done.length?avg(done):data.set.period;
+  const last=periods[periods.length-1];
+  const spread=used.length>1?Math.max(...used)-Math.min(...used):0;
+  return{periods,cycles,used,cycle,plen,last,spread,next:last?last.start+cycle:null};
+}
+function forecast(a,t){
+  const m={};if(!a.last)return m;
+  for(let i=0;i<13;i++){
+    const s=a.last.start+i*a.cycle, nx=s+a.cycle, ov=nx-14;
+    for(let d=ov-5;d<=ov+1;d++)if(d>=s+a.plen)m[d]=d===ov?'o':'f';
+    for(let d=nx;d<nx+a.plen;d++)if(d>t)m[d]='pp';
+  }
+  return m;
+}
+
+let data=blank(), demo=false, tab='today', sel=todayN(), month=null, canStore=true, confirmWipe=false, downloads=null;
+try{const s=localStorage.getItem(KEY);if(s)data=clean(JSON.parse(s))||blank()}catch(e){canStore=false}
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function say(t){$('#msg').textContent=t}
+function save(msg){
+  if(demo){say('Example mode: changes are not saved.');return}
+  try{localStorage.setItem(KEY,JSON.stringify(data));canStore=true;say(msg)}catch(e){canStore=false;say('This browser blocked saving. Download a backup from Settings.')}
+}
+function entry(n){return data.days[iso(n)]||{flow:0,sym:[],mood:'',note:''}}
+function put(n,e){if(e.flow||e.sym.length||e.mood||e.note)data.days[iso(n)]=e;else delete data.days[iso(n)]}
+const plural=(n,w)=>n+' '+w+(n===1?'':'s');
+
+function dial(a,t){
+  const day=t-a.last.start+1, len=Math.max(a.cycle,day), R=124, C=150;
+  const pt=(f,r)=>{const g=f*2*Math.PI-Math.PI/2;return[C+r*Math.cos(g),C+r*Math.sin(g)]};
+  const arc=(from,to,col)=>{if(to<=from)return'';const f=from/len,g=Math.min(to/len,f+.999),[x,y]=pt(f,R),[u,v]=pt(g,R);return`<path d="M${x} ${y}A${R} ${R} 0 ${g-f>.5?1:0} 1 ${u} ${v}" fill="none" stroke="var(${col})" stroke-width="22"/>`};
+  const ov=a.cycle-14;
+  let ticks='';for(let i=0;i<len;i++){const[x,y]=pt((i+.5)/len,102);ticks+=`<circle cx="${x}" cy="${y}" r="1.6" fill="var(--mut)"/>`}
+  const [mx,my]=pt((day-.5)/len,R);
+  let ph='Luteal phase';
+  if(day>a.cycle)ph='Period is late';
+  else if(t<=a.last.end||(day<=a.plen&&t-a.last.end<=1))ph='Period';
+  else if(day-1===ov)ph='Estimated ovulation';
+  else if(day-1>=ov-5&&day-1<=ov+1)ph='Fertile window';
+  else if(day-1<ov)ph='Follicular phase';
+  return`<svg class="dial" viewBox="0 0 300 300" role="img" aria-label="Cycle day ${day}. ${ph}.">
+  <circle cx="150" cy="150" r="${R}" fill="none" stroke="var(--line)" stroke-width="22"/>
+  ${arc(0,a.plen,'--period')}${arc(Math.max(a.plen,ov-5),ov+2,'--fertile')}${arc(Math.max(a.plen,ov),ov+1,'--ov')}${ticks}
+  <circle cx="${mx}" cy="${my}" r="14" fill="var(--card)" stroke="var(--ink)" stroke-width="4"/>
+  <text x="150" y="118" class="s">Cycle day</text><text x="150" y="170" class="n">${day}</text><text x="150" y="198" class="ph">${ph}</text></svg>`;
+}
+
+function setupView(){
+  const t=todayN();
+  return`<form class="card" id="setup"><h2>Start with your last period</h2>
+  <label>First day of your last period<input type="date" id="s-start" max="${iso(t)}" required></label>
+  <label>How many days it usually lasts<input type="number" id="s-period" min="1" max="14" value="5" required></label>
+  <label>Days from one period start to the next<input type="number" id="s-cycle" min="15" max="60" value="28" required></label>
+  <p class="mut">Not sure? Keep 5 and 28. The averages update as you log more periods. The days you enter here are added as medium flow, and you can edit them.</p>
+  <button class="pri">Start tracking</button><button type="button" data-act="demo">View with example data</button></form>`;
+}
+function todayView(){
+  const t=todayN(), a=analyse(data,t);
+  if(!a.last)return setupView();
+  const left=a.next-t, ovs=(()=>{let o=a.next-14;while(o+1<t)o+=a.cycle;return o})();
+  const head=left>1?`Next period in ${left} days`:left===1?'Next period expected tomorrow':left===0?'Next period expected today':`Period is ${plural(-left,'day')} late`;
+  const active=entry(t).flow>=2;
+  return`<section class="card"><h2>${head}</h2>${dial(a,t)}
+  <div class="legend"><span><i style="background:var(--period)"></i>Period</span><span><i style="background:var(--fertile)"></i>Fertile window</span><span><i style="background:var(--ov)"></i>Ovulation</span></div>
+  <div class="btns"><button class="pri" data-act="bleed">${active?'Remove today’s period entry':'My period is here today'}</button><button data-act="logtoday">Log symptoms</button></div></section>
+  <section class="card rows" style="gap:0">
+  <div class="row"><span>${left<0?'Was expected':'Next period'}</span><b>${fmt(a.next)}</b></div>
+  ${left<0?'':`<div class="row"><span>Fertile window</span><b>${fmt(ovs-5)} – ${fmt(ovs+1)}</b></div><div class="row"><span>Estimated ovulation</span><b>${fmt(ovs)}</b></div>`}
+  <div class="row"><span>Average cycle</span><b>${plural(a.cycle,'day')}</b></div></section>
+  ${left<0?'<p class="mut">Cycles often shift with stress, illness or travel. If pregnancy is possible, take a test. See a doctor if you miss periods for 3 months.</p>':''}
+  ${a.used.length<3?'<p class="mut">Estimates improve after you log a few cycles.</p>':a.spread>7?`<p class="mut">Your recent cycles vary by ${a.spread} days, so treat these dates as rough.</p>`:''}`;
+}
+function calendarView(){
+  const t=todayN(), a=analyse(data,t), fc=forecast(a,t);
+  if(month===null){const d=new Date(sel*DAY);month=[d.getUTCFullYear(),d.getUTCMonth()]}
+  const [y,m]=month, first=Date.UTC(y,m,1)/DAY, count=new Date(Date.UTC(y,m+1,0)).getUTCDate(), lead=(new Date(first*DAY).getUTCDay()+6)%7;
+  let cells=['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=>`<span class="dow">${d}</span>`).join('')+'<span></span>'.repeat(lead);
+  const word={p:'period logged',pp:'predicted period',f:'fertile window',o:'estimated ovulation'};
+  for(let i=0;i<count;i++){
+    const n=first+i, e=data.days[iso(n)], c=e&&e.flow>=2?'p':fc[n]||'';
+    cells+=`<button class="day ${c}${n===t?' today':''}${n===sel?' sel':''}${e&&(e.sym.length||e.mood||e.note||e.flow===1)?' dot':''}" data-day="${n}" aria-label="${fmt(n)}${c?', '+word[c]:''}">${i+1}</button>`;
+  }
+  const e=entry(sel), future=sel>t;
+  const chips=(kind,list,on)=>`<div class="chips">${list.map((x,i)=>`<button data-${kind}="${i}" aria-pressed="${on(x,i)}">${x}</button>`).join('')}</div>`;
+  return`<section class="card"><div class="head"><button data-month="-1" aria-label="Previous month">‹</button><h2>${fmt(first,{month:'long',year:'numeric'})}</h2><button data-month="1" aria-label="Next month">›</button></div>
+  <div class="grid">${cells}</div>
+  <div class="legend"><span><i style="background:var(--period)"></i>Logged</span><span><i style="background:var(--period-soft);outline:1px dashed var(--period)"></i>Predicted</span><span><i style="background:var(--fertile-soft)"></i>Fertile</span><span><i style="border:2px solid var(--ov)"></i>Ovulation</span><span>• Notes</span></div></section>
+  <section class="card" id="log"><h2>${fmt(sel,{weekday:'long',day:'numeric',month:'long'})}</h2>
+  ${future?'<p class="mut">You can log this day once it arrives.</p>':`<h3>Flow</h3>${chips('flow',FLOW,(x,i)=>e.flow===i)}
+  <h3>Symptoms</h3>${chips('sym',SYM,x=>e.sym.includes(x))}<h3>Mood</h3>${chips('mood',MOOD,x=>e.mood===x)}
+  <label>Note<textarea id="note" rows="3" maxlength="500">${esc(e.note)}</textarea></label><p class="mut">Everything saves as you go.</p>`}</section>`;
+}
+function historyView(){
+  const t=todayN(), a=analyse(data,t);
+  if(!a.last)return'<section class="card"><h2>No history yet</h2><p class="mut">Log a period from the Today or Calendar tab. Your cycle lengths and common symptoms will appear here.</p></section>';
+  const recent=a.cycles.slice(-8).reverse(), max=Math.max(...recent.map(c=>c.len),1);
+  const counts={};Object.values(data.days).forEach(e=>e.sym.forEach(s=>counts[s]=(counts[s]||0)+1));
+  const top=Object.entries(counts).sort((x,y)=>y[1]-x[1]).slice(0,5);
+  return`<section class="card"><h2>Cycle lengths</h2>${recent.length?recent.map(c=>`<div class="bar"><span>${fmt(c.start)}</span><div class="track"><span style="width:${c.len/max*100}%"></span></div><span>${c.len} days</span></div>`).join(''):'<p class="mut">Log a second period to see your first cycle length.</p>'}
+  <p class="mut">Average period length: ${plural(a.plen,'day')}. Gaps under 15 or over 60 days are left out of the cycle average.</p></section>
+  <section class="card"><h2>Periods</h2><div class="rows">${a.periods.slice(-12).reverse().map(p=>`<div class="row"><span>${fmt(p.start,{day:'numeric',month:'short',year:'numeric'})}</span><b>${plural(p.end-p.start+1,'day')}</b></div>`).join('')}</div></section>
+  <section class="card"><h2>Frequent symptoms</h2>${top.length?`<div class="rows">${top.map(([s,c])=>`<div class="row"><span>${s}</span><b>${plural(c,'day')}</b></div>`).join('')}</div>`:'<p class="mut">No symptoms logged yet.</p>'}</section>`;
+}
+function dataView(){
+  return`<section class="card"><h2>Starting estimates</h2><p class="mut">Used until your own logs give an average.</p>
+  <label>Cycle length (15–60 days)<input type="number" id="c-cycle" min="15" max="60" value="${data.set.cycle}"></label>
+  <label>Period length (1–14 days)<input type="number" id="c-period" min="1" max="14" value="${data.set.period}"></label></section>
+  <section class="card"><h2>Backup and restore</h2><p class="mut">Your entries exist only in this browser on this device. Clearing site data erases them, so save a backup now and then. A backup file is not encrypted.</p>
+  <div class="btns">${downloads?'<button class="pri" data-act="download">Download backup</button>':''}<button data-act="copy">Copy backup</button></div>
+  <textarea id="backup" rows="3" placeholder="Paste a backup here to restore it" aria-label="Backup text"></textarea>
+  <label>Or choose a backup file<input type="file" id="file" accept=".json,application/json"></label>
+  <button data-act="restore">Restore and replace my entries</button></section>
+  <section class="card"><h2>When to see a doctor</h2><ul><li>Cycles are often shorter than 21 days or longer than 35 (teenagers can vary more).</li><li>Bleeding lasts more than 7 days.</li><li>You need a new pad or tampon every 1 to 2 hours.</li><li>Pain disrupts your daily life.</li><li>You bleed between periods, after sex or after menopause.</li><li>You miss 3 months of periods.</li></ul><p class="mut">Get urgent care for very heavy bleeding with fainting or dizziness, or for severe sudden pain.</p></section>
+  <section class="card"><h2>Delete everything</h2><button data-act="wipe">${confirmWipe?'Tap again to delete all entries':'Delete all my data'}</button></section>`;
+}
+function render(){
+  document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tab===tab));
+  const banner=demo?'<div class="banner"><span>You are viewing example data, not yours.</span><button data-act="exit">Exit example</button></div>':'';
+  $('#view').innerHTML=banner+{today:todayView,calendar:calendarView,history:historyView,data:dataView}[tab]();
+}
+let saved=null;
+function startDemo(){
+  saved=data;data=blank();demo=true;const t=todayN();
+  [96,68,39,11].forEach((ago,i)=>{for(let d=0;d<5;d++)put(t-ago+d,{flow:[3,4,3,2,2][d],sym:d<2?['Cramps',i%2?'Fatigue':'Headache']:[],mood:d===0?'Low':'',note:''})});
+}
+function restore(text){
+  let d=null;try{d=clean(JSON.parse(text))}catch(e){}
+  if(!d){say('That is not a Moonphase backup. Paste the whole text or choose the .json file.');return}
+  demo=false;data=d;save('Backup restored.');tab='today';render();
+}
+document.addEventListener('click',async ev=>{
+  const b=ev.target.closest('button');if(!b)return;const d=b.dataset;
+  if(d.tab){tab=d.tab;month=null;confirmWipe=false;say('');render();return}
+  if(d.day){sel=+d.day;render();$('#log').scrollIntoView({block:'nearest'});return}
+  if(d.month){let [y,m]=month;m+=+d.month;month=[y+Math.floor(m/12),(m+12)%12];render();return}
+  if(d.flow||d.sym||d.mood){
+    const e=structuredClone(entry(sel));
+    if(d.flow)e.flow=+d.flow;
+    if(d.sym){const s=SYM[+d.sym];e.sym=e.sym.includes(s)?e.sym.filter(x=>x!==s):[...e.sym,s]}
+    if(d.mood){const s=MOOD[+d.mood];e.mood=e.mood===s?'':s}
+    put(sel,e);save('Saved.');render();return}
+  const act=d.act;
+  if(act==='demo'){startDemo();say('');render()}
+  if(act==='exit'){demo=false;data=saved||blank();tab='today';say('');render()}
+  if(act==='bleed'){const t=todayN(),e=structuredClone(entry(t));e.flow=e.flow>=2?0:3;put(t,e);save(e.flow?'Period logged for today.':'Today’s period entry removed.');render()}
+  if(act==='logtoday'){sel=todayN();month=null;tab='calendar';render();$('#log').scrollIntoView()}
+  if(act==='download'){try{await downloads.save({filename:'moonphase-backup.json',data:JSON.stringify(data)})}catch(e){say('The file was not saved. You can use Copy backup instead.')}}
+  if(act==='copy'){const s=JSON.stringify(data);try{await navigator.clipboard.writeText(s);say('Backup copied.')}catch(e){$('#backup').value=s;$('#backup').select();say('Copy the selected text.')}}
+  if(act==='restore')restore($('#backup').value);
+  if(act==='wipe'){
+    if(!confirmWipe){confirmWipe=true;render();return}
+    confirmWipe=false;data=blank();demo=false;try{localStorage.removeItem(KEY);say('All entries deleted.')}catch(e){say('Entries cleared from this page.')}tab='today';render()}
+});
+document.addEventListener('input',ev=>{
+  if(ev.target.id==='note'){const e=structuredClone(entry(sel));e.note=ev.target.value;put(sel,e);save('Saved.')}
+});
+document.addEventListener('change',async ev=>{
+  const x=ev.target;
+  if(x.id==='file'&&x.files[0]){restore(await x.files[0].text())}
+  if(x.id==='c-cycle'||x.id==='c-period'){
+    if(!x.value||!x.checkValidity()){say(`Enter a whole number from ${x.min} to ${x.max}.`);return}
+    data.set[x.id.slice(2)]=+x.value;save('Saved.')}
+});
+document.addEventListener('submit',ev=>{
+  ev.preventDefault();
+  const t=todayN(), s=num($('#s-start').value), p=+$('#s-period').value;
+  if(!(s<=t)){say('Choose a date that is today or earlier.');return}
+  data.set={cycle:+$('#s-cycle').value,period:p};
+  for(let n=s;n<s+p&&n<=t;n++){const e=structuredClone(entry(n));e.flow=e.flow>=2?e.flow:3;put(n,e)}
+  save('Tracking started.');render();
+});
+if(!window.claude){downloads={save:async({filename,data})=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}}}
+render();
+if(!canStore)say('This browser blocks storage, so entries will be lost when you close the page.');
+window.claude?.use?.('downloads').then(d=>{downloads=d;if(tab==='data')render()}).catch(()=>{});
+</script>
+</body>
+</html>
